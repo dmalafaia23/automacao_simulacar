@@ -1,0 +1,41 @@
+﻿services:
+  api:
+    build: .
+    container_name: simulacao_api
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  worker:
+    build: .
+    container_name: simulacao_worker
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "-l", "INFO"]
+
+  db:
+    image: postgres:16
+    container_name: simulacao_db
+    environment:
+      POSTGRES_DB: simulacao
+      POSTGRES_USER: simulacao
+      POSTGRES_PASSWORD: simulacao
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: simulacao_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

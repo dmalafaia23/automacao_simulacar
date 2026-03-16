@@ -1,0 +1,7 @@
+﻿{
+  "base_url": "https://c6auto.com.br/originacaolojista/login",
+  "email": "41001108809",
+  "senha": "Carro$2025",
+  "headless": false,
+  "timeout_ms": 30000
+}

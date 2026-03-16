@@ -1,0 +1,7 @@
+﻿{
+  "base_url": "https://www.credlineitau.com.br/simulator",
+  "email": "pravoceveiculos@icloud.com",
+  "senha": "Veiculos$2025",
+  "headless": false,
+  "timeout_ms": 30000
+}
