@@ -1,5 +1,5 @@
 ﻿from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 from playwright.sync_api import sync_playwright
 
 from config_loader import AppConfig
@@ -16,6 +16,16 @@ def log_step(message: str) -> None:
     print(f"[STEP] {message}")
 
 
+def is_driver_connection_error(exc: Exception) -> bool:
+    message = str(exc)
+    return (
+        "Connection closed while reading from the driver" in message
+        or "Target closed" in message
+        or "Browser closed" in message
+        or "has been closed" in message
+    )
+
+
 @dataclass
 class Simulator:
     config: AppConfig
@@ -23,27 +33,43 @@ class Simulator:
 
     def run(self) -> List[Dict[str, str]]:
         log_step("Iniciando execução do simulador")
-        with sync_playwright() as p:
-            log_step("Abrindo navegador")
-            browser = p.chromium.launch(headless=self.config.headless)
-            log_step("Abrindo nova página")
-            page = browser.new_page()
-            log_step("Configurando timeout padrão")
-            page.set_default_timeout(self.config.timeout_ms)
-            log_step(f"Acessando URL base: {self.config.base_url}")
-            page.goto(self.config.base_url)
-            page.wait_for_timeout(4500)
-            log_step("Executando login")
-            perform_login(page, self.config)
-            log_step("Executando simulador PF")
-            resultados = self.simulador_pf(
-                page,
-                cpf=self.client_data.cpf,
-                timeout_ms=self.config.timeout_ms,
-            )
-            # Não fechar o navegador por enquanto, conforme solicitado.
-            log_step("Execução do simulador finalizada")
-            return resultados
+        max_driver_retries = 2
+        last_exc: Optional[Exception] = None
+        for attempt in range(1, max_driver_retries + 1):
+            with sync_playwright() as p:
+                log_step("Abrindo navegador")
+                browser = p.chromium.launch(headless=self.config.headless)
+                log_step("Abrindo nova página")
+                page = browser.new_page()
+                log_step("Configurando timeout padrão")
+                page.set_default_timeout(self.config.timeout_ms)
+                try:
+                    log_step(f"Acessando URL base: {self.config.base_url}")
+                    page.goto(self.config.base_url)
+                    page.wait_for_timeout(4500)
+                    log_step("Executando login")
+                    perform_login(page, self.config)
+                    log_step("Executando simulador PF")
+                    resultados = self.simulador_pf(
+                        page,
+                        cpf=self.client_data.cpf,
+                        timeout_ms=self.config.timeout_ms,
+                    )
+                    # Não fechar o navegador por enquanto, conforme solicitado.
+                    log_step("Execução do simulador finalizada")
+                    return resultados
+                except Exception as exc:
+                    last_exc = exc
+                    if is_driver_connection_error(exc) and attempt < max_driver_retries:
+                        log_step(
+                            "Conexao com o driver fechada. Reiniciando o navegador "
+                            f"(tentativa {attempt}/{max_driver_retries})."
+                        )
+                        continue
+                    raise
+        if last_exc is not None:
+            raise last_exc
+        return []
 
     def simulador_pf(self, page, cpf: str, timeout_ms: int) -> List[Dict[str, str]]:
         botao_novo_simulador = page.get_by_role("button", name="Novo Simulador PF")
@@ -103,7 +129,9 @@ class Simulator:
         page.locator("//*[@id=\"financing-conditions\"]/div/form/div/div[3]/div/app-simulator-installments/div[1]/div[2]/div/div/div[1]/ul/li[2]/app-return-settings/div/button").click()
         page.wait_for_timeout(4000)
         log_step("Abrindo seletor de retorno")
-        page.locator("#ids-select-11").click()
+        seletor_retorno = page.locator("#ids-select-11")
+        seletor_retorno.wait_for(state="visible", timeout=timeout_ms)
+        seletor_retorno.click()
         page.wait_for_timeout(1000)
         try:
             log_step(f"Selecionando retorno: {self.client_data.retorno_estrelas}")
