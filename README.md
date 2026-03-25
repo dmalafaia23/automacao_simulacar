@@ -14,7 +14,7 @@ O fluxo e baseado em processamento por `job_id`:
 
 ## Versao
 
-Versao atual da API: `1.1.0`
+Versao atual da API: `1.2.0`
 
 ## Requisitos
 
@@ -87,7 +87,7 @@ Resposta:
 ```json
 {
   "status": "ok",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "current_time": "2026-03-25T20:01:36.377742-03:00",
   "timezone": "-03"
 }
