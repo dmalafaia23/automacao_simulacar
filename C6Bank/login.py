@@ -1,6 +1,9 @@
 ﻿from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
 
-from config_loader import AppConfig
+try:
+    from .config_loader import AppConfig
+except ImportError:
+    from config_loader import AppConfig
 
 
 def log_step(message: str) -> None:

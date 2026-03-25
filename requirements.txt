@@ -1,1 +1,4 @@
+fastapi
 playwright
+pydantic
+uvicorn

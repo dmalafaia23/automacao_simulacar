@@ -2,10 +2,16 @@
 from typing import Dict, List
 from playwright.sync_api import sync_playwright
 
-from config_loader import AppConfig
-from client_data_loader import ClientData
-from login import perform_login
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+
+try:
+    from .config_loader import AppConfig
+    from .client_data_loader import ClientData
+    from .login import perform_login
+except ImportError:
+    from config_loader import AppConfig
+    from client_data_loader import ClientData
+    from login import perform_login
 
 
 class SiteLentoError(RuntimeError):

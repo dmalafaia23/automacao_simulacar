@@ -1,9 +1,14 @@
 ﻿import json
 from pathlib import Path
 
-from config_loader import load_config
-from client_data_loader import load_client_data
-from simulator import Simulator
+try:
+    from .config_loader import load_config
+    from .client_data_loader import load_client_data
+    from .simulator import Simulator
+except ImportError:
+    from config_loader import load_config
+    from client_data_loader import load_client_data
+    from simulator import Simulator
 
 
 def main() -> None:
