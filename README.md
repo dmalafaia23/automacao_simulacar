@@ -43,6 +43,19 @@ Instalar o navegador do Playwright:
 .venv/bin/python -m playwright install chromium
 ```
 
+Criar o arquivo de ambiente local:
+
+```bash
+cp .env.example .env
+```
+
+Depois preencha a chave no arquivo `.env`:
+
+```env
+EXTERNAL_API_URL="https://hvzsydmtqjasgnveyrxr.supabase.co/functions/v1/api-externa"
+EXTERNAL_API_KEY="SUA_CHAVE_AQUI"
+```
+
 ## Executando a API
 
 Subir o servidor local:
