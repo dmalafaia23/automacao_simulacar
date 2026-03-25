@@ -94,3 +94,20 @@ class HealthResponse(BaseModel):
     version: str
     current_time: datetime
     timezone: str
+
+
+class SupabaseVehicleResponse(BaseModel):
+    status: str
+    supabase_key_mode: Literal["service_role", "publishable"]
+    authorization_mode: Literal["service_role", "publishable_only", "publishable_plus_user_jwt"]
+    plate: str
+    data: Optional[Any] = None
+    message: Optional[str] = None
+
+
+class SupabaseBanksResponse(BaseModel):
+    status: str
+    supabase_key_mode: Literal["service_role", "publishable"]
+    authorization_mode: Literal["service_role", "publishable_only", "publishable_plus_user_jwt"]
+    data: Optional[Any] = None
+    message: Optional[str] = None
