@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from .external_api import (
     ExternalAPIConfigError,
     ExternalAPIRequestError,
+    get_processing,
     find_vehicle_by_plate,
     get_external_api_config,
     list_banks,
@@ -21,12 +22,10 @@ from .schemas import (
     SimulationRequest,
     SimulationStatusResponse,
 )
-from .store import JobStore
 
 
-API_VERSION = "1.2.0"
-job_store = JobStore()
-orchestrator = SimulationOrchestrator(job_store)
+API_VERSION = "1.3.0"
+orchestrator = SimulationOrchestrator()
 
 app = FastAPI(title="Automacao Simulacar API", version=API_VERSION)
 
@@ -116,34 +115,25 @@ def create_simulation(payload: SimulationRequest) -> SimulationCreateResponse:
         raise HTTPException(status_code=400, detail="Informe ao menos um banco para simular.")
 
     try:
-        job_id = orchestrator.create_job(payload)
+        return orchestrator.create_job(payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    return SimulationCreateResponse(id=job_id, status="pending")
+    except ExternalAPIRequestError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": str(exc), "details": exc.details},
+        ) from exc
 
 
 @app.get("/simulacoes/{job_id}", response_model=SimulationStatusResponse)
 def get_simulation(job_id: str) -> SimulationStatusResponse:
-    job = job_store.get_job(job_id)
-    if job is None:
-        raise HTTPException(status_code=404, detail="Processamento não encontrado.")
+    try:
+        response = get_processing(job_id)
+    except ExternalAPIRequestError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": str(exc), "details": exc.details},
+        ) from exc
 
-    return SimulationStatusResponse(
-        id=job.id,
-        status=job.status,
-        created_at=job.created_at,
-        started_at=job.started_at,
-        finished_at=job.finished_at,
-        banks={
-            name: {
-                "bank": bank.bank,
-                "status": bank.status,
-                "started_at": bank.started_at,
-                "finished_at": bank.finished_at,
-                "result": bank.result,
-                "error": bank.error,
-            }
-            for name, bank in job.banks.items()
-        },
-    )
+    data = response["data"]
+    return SimulationStatusResponse(**data)

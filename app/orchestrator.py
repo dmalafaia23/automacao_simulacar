@@ -1,83 +1,146 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from threading import Thread
 from typing import Callable, Dict, List, Tuple
-from uuid import uuid4
 
 from .banks import run_c6bank, run_itau
-from .schemas import SimulationRequest
-from .store import JobStore
+from .external_api import (
+    create_processing,
+    insert_processing_offers,
+    normalize_offers,
+    update_processing,
+    update_processing_bank,
+)
+from .schemas import SimulationCreateResponse, SimulationRequest
 
 
 BankRunner = Callable[[SimulationRequest], List[Dict[str, str]]]
 
 
+def utcnow_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+@dataclass(frozen=True)
+class BankPlan:
+    internal_name: str
+    display_name: str
+    runner: BankRunner
+
+
 class SimulationOrchestrator:
-    def __init__(self, store: JobStore) -> None:
-        self.store = store
-
-    def create_job(self, payload: SimulationRequest) -> str:
-        enabled_banks = self._enabled_banks(payload)
-        if not enabled_banks:
+    def create_job(self, payload: SimulationRequest) -> SimulationCreateResponse:
+        plans = self._bank_plans(payload)
+        if not plans:
             raise ValueError("No enabled banks were provided for processing.")
-        job_id = str(uuid4())
-        self.store.create_job(job_id, payload.model_dump(mode="json"), enabled_banks)
-        worker = Thread(target=self._run_job, args=(job_id, payload), daemon=True)
+
+        created = create_processing(
+            dados_requisicao=payload.model_dump(mode="json"),
+            bancos=[plan.display_name for plan in plans],
+        )
+        created_data = created["data"]
+        worker = Thread(target=self._run_job, args=(created_data, payload, plans), daemon=True)
         worker.start()
-        return job_id
+        return SimulationCreateResponse(
+            id=created_data["id"],
+            status=created_data["status"],
+            quantidade_bancos=created_data["quantidade_bancos"],
+            bancos=created_data.get("bancos", []),
+        )
 
-    def _enabled_banks(self, payload: SimulationRequest) -> List[str]:
-        banks: List[str] = []
+    def _bank_plans(self, payload: SimulationRequest) -> List[BankPlan]:
+        plans: List[BankPlan] = []
         if payload.itau and payload.itau.enabled:
-            banks.append("itau")
+            plans.append(BankPlan("itau", "Itaú", run_itau))
         if payload.c6bank and payload.c6bank.enabled:
-            banks.append("c6bank")
-        return banks
+            plans.append(BankPlan("c6bank", "C6 Bank", run_c6bank))
+        return plans
 
-    def _bank_runners(self, payload: SimulationRequest) -> List[Tuple[str, BankRunner]]:
-        runners: List[Tuple[str, BankRunner]] = []
-        if payload.itau and payload.itau.enabled:
-            runners.append(("itau", run_itau))
-        if payload.c6bank and payload.c6bank.enabled:
-            runners.append(("c6bank", run_c6bank))
-        return runners
-
-    def _run_job(self, job_id: str, payload: SimulationRequest) -> None:
-        runners = self._bank_runners(payload)
-        if not runners:
-            self.store.mark_job_finished(job_id, "failed")
+    def _run_job(self, created_data: Dict[str, object], payload: SimulationRequest, plans: List[BankPlan]) -> None:
+        processamento_id = str(created_data["id"])
+        bancos_registrados = created_data.get("bancos", [])
+        if not isinstance(bancos_registrados, list) or not plans:
+            update_processing(
+                processamento_id,
+                status="erro",
+                quantidade_bancos_concluidos=0,
+                quantidade_bancos_com_erro=len(plans),
+                finalizado_em=utcnow_iso(),
+            )
             return
 
-        self.store.mark_job_processing(job_id)
-        has_errors = False
-        with ThreadPoolExecutor(max_workers=len(runners)) as executor:
-            future_map = {}
-            for bank_name, runner in runners:
-                self.store.update_bank(job_id, bank_name, status="processing", started=True)
-                future = executor.submit(runner, payload)
-                future_map[future] = bank_name
+        bancos_por_nome = {
+            str(item["nome_banco"]): item
+            for item in bancos_registrados
+            if isinstance(item, dict) and "nome_banco" in item
+        }
+        update_processing(processamento_id, status="processando")
+
+        concluidos = 0
+        com_erro = 0
+        with ThreadPoolExecutor(max_workers=len(plans)) as executor:
+            future_map: Dict[object, Tuple[BankPlan, Dict[str, object]]] = {}
+            for plan in plans:
+                banco_registrado = bancos_por_nome.get(plan.display_name)
+                if banco_registrado is None:
+                    com_erro += 1
+                    continue
+
+                input_data = self._bank_input_data(payload, plan.internal_name)
+                update_processing_bank(
+                    str(banco_registrado["id"]),
+                    status="processando",
+                    dados_entrada=input_data,
+                    iniciado_em=utcnow_iso(),
+                )
+                future = executor.submit(plan.runner, payload)
+                future_map[future] = (plan, banco_registrado)
 
             for future in as_completed(future_map):
-                bank_name = future_map[future]
+                plan, banco_registrado = future_map[future]
+                banco_id = str(banco_registrado["id"])
                 try:
                     result = future.result()
-                    self.store.update_bank(
-                        job_id,
-                        bank_name,
-                        status="completed",
-                        result=result,
-                        finished=True,
+                    update_processing_bank(
+                        banco_id,
+                        status="concluido",
+                        dados_retorno=result,
+                        finalizado_em=utcnow_iso(),
                     )
+                    ofertas = normalize_offers(plan.display_name, result)
+                    if ofertas:
+                        insert_processing_offers(banco_id, ofertas)
+                    concluidos += 1
                 except Exception as exc:
-                    has_errors = True
-                    self.store.update_bank(
-                        job_id,
-                        bank_name,
-                        status="failed",
-                        error=str(exc),
-                        finished=True,
+                    com_erro += 1
+                    update_processing_bank(
+                        banco_id,
+                        status="erro",
+                        mensagem_erro=str(exc),
+                        finalizado_em=utcnow_iso(),
                     )
 
-        final_status = "completed_with_errors" if has_errors else "completed"
-        self.store.mark_job_finished(job_id, final_status)
+        if concluidos > 0 and com_erro > 0:
+            final_status = "concluido_com_erros"
+        elif concluidos > 0:
+            final_status = "concluido"
+        else:
+            final_status = "erro"
+
+        update_processing(
+            processamento_id,
+            status=final_status,
+            quantidade_bancos_concluidos=concluidos,
+            quantidade_bancos_com_erro=com_erro,
+            finalizado_em=utcnow_iso(),
+        )
+
+    def _bank_input_data(self, payload: SimulationRequest, internal_name: str) -> Dict[str, object]:
+        if internal_name == "itau" and payload.itau:
+            return payload.itau.model_dump(mode="json")
+        if internal_name == "c6bank" and payload.c6bank:
+            return payload.c6bank.model_dump(mode="json")
+        return {}

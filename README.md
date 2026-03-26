@@ -14,7 +14,7 @@ O fluxo e baseado em processamento por `job_id`:
 
 ## Versao
 
-Versao atual da API: `1.2.0`
+Versao atual da API: `1.3.0`
 
 ## Requisitos
 
@@ -100,7 +100,7 @@ Resposta:
 ```json
 {
   "status": "ok",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "current_time": "2026-03-25T20:01:36.377742-03:00",
   "timezone": "-03"
 }
@@ -166,7 +166,7 @@ Resposta:
 ```json
 {
   "id": "9d5d5e4e-7ec8-4f24-a9c6-5c1ad2f9f1d0",
-  "status": "pending"
+  "status": "pendente"
 }
 ```
 
@@ -185,26 +185,26 @@ Resposta enquanto processa:
 ```json
 {
   "id": "9d5d5e4e-7ec8-4f24-a9c6-5c1ad2f9f1d0",
-  "status": "processing",
-  "created_at": "2026-03-25T20:10:00.000000+00:00",
-  "started_at": "2026-03-25T20:10:01.000000+00:00",
-  "finished_at": null,
-  "banks": {
+  "status": "processando",
+  "criado_em": "2026-03-25T20:10:00.000000+00:00",
+  "iniciado_em": "2026-03-25T20:10:01.000000+00:00",
+  "finalizado_em": null,
+  "bancos": {
     "itau": {
-      "bank": "itau",
-      "status": "processing",
-      "started_at": "2026-03-25T20:10:01.000000+00:00",
-      "finished_at": null,
-      "result": null,
-      "error": null
+      "nome_banco": "Itaú",
+      "status": "processando",
+      "iniciado_em": "2026-03-25T20:10:01.000000+00:00",
+      "finalizado_em": null,
+      "dados_retorno": null,
+      "mensagem_erro": null
     },
     "c6bank": {
-      "bank": "c6bank",
-      "status": "completed",
-      "started_at": "2026-03-25T20:10:01.000000+00:00",
-      "finished_at": "2026-03-25T20:10:40.000000+00:00",
-      "result": [],
-      "error": null
+      "nome_banco": "C6 Bank",
+      "status": "concluido",
+      "iniciado_em": "2026-03-25T20:10:01.000000+00:00",
+      "finalizado_em": "2026-03-25T20:10:40.000000+00:00",
+      "dados_retorno": [],
+      "mensagem_erro": null
     }
   }
 }
@@ -215,26 +215,26 @@ Resposta final com erro parcial:
 ```json
 {
   "id": "9d5d5e4e-7ec8-4f24-a9c6-5c1ad2f9f1d0",
-  "status": "completed_with_errors",
-  "created_at": "2026-03-25T20:10:00.000000+00:00",
-  "started_at": "2026-03-25T20:10:01.000000+00:00",
-  "finished_at": "2026-03-25T20:11:00.000000+00:00",
-  "banks": {
+  "status": "concluido_com_erros",
+  "criado_em": "2026-03-25T20:10:00.000000+00:00",
+  "iniciado_em": "2026-03-25T20:10:01.000000+00:00",
+  "finalizado_em": "2026-03-25T20:11:00.000000+00:00",
+  "bancos": {
     "itau": {
-      "bank": "itau",
-      "status": "failed",
-      "started_at": "2026-03-25T20:10:01.000000+00:00",
-      "finished_at": "2026-03-25T20:10:35.000000+00:00",
-      "result": null,
-      "error": "timeout no login"
+      "nome_banco": "Itaú",
+      "status": "erro",
+      "iniciado_em": "2026-03-25T20:10:01.000000+00:00",
+      "finalizado_em": "2026-03-25T20:10:35.000000+00:00",
+      "dados_retorno": null,
+      "mensagem_erro": "timeout no login"
     },
     "c6bank": {
-      "bank": "c6bank",
-      "status": "completed",
-      "started_at": "2026-03-25T20:10:01.000000+00:00",
-      "finished_at": "2026-03-25T20:10:40.000000+00:00",
-      "result": [],
-      "error": null
+      "nome_banco": "C6 Bank",
+      "status": "concluido",
+      "iniciado_em": "2026-03-25T20:10:01.000000+00:00",
+      "finalizado_em": "2026-03-25T20:10:40.000000+00:00",
+      "dados_retorno": [],
+      "mensagem_erro": null
     }
   }
 }
@@ -243,23 +243,23 @@ Resposta final com erro parcial:
 ## Status possiveis
 
 Status do processamento:
-- `pending`
-- `processing`
-- `completed`
-- `completed_with_errors`
-- `failed`
+- `pendente`
+- `processando`
+- `concluido`
+- `concluido_com_erros`
+- `erro`
 
 Status por banco:
-- `pending`
-- `processing`
-- `completed`
-- `failed`
+- `pendente`
+- `processando`
+- `concluido`
+- `erro`
 
 ## Estrutura atual
 
 - [`app/main.py`](/Users/luizcarrijo/Fontes/LRCTech/automacao_simulacar/app/main.py): endpoints HTTP
 - [`app/orchestrator.py`](/Users/luizcarrijo/Fontes/LRCTech/automacao_simulacar/app/orchestrator.py): cria jobs e executa bancos em paralelo
-- [`app/store.py`](/Users/luizcarrijo/Fontes/LRCTech/automacao_simulacar/app/store.py): persistencia temporaria em memoria
+- [`app/external_api.py`](/Users/luizcarrijo/Fontes/LRCTech/automacao_simulacar/app/external_api.py): integração com a API externa e persistência remota
 - [`app/schemas.py`](/Users/luizcarrijo/Fontes/LRCTech/automacao_simulacar/app/schemas.py): contratos de entrada e saida
 - [`app/banks.py`](/Users/luizcarrijo/Fontes/LRCTech/automacao_simulacar/app/banks.py): adaptadores dos bancos
 

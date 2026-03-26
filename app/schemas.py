@@ -5,13 +5,13 @@ from pydantic import BaseModel, Field
 
 
 JobStatus = Literal[
-    "pending",
-    "processing",
-    "completed",
-    "completed_with_errors",
-    "failed",
+    "pendente",
+    "processando",
+    "concluido",
+    "concluido_com_erros",
+    "erro",
 ]
-BankStatus = Literal["pending", "processing", "completed", "failed"]
+BankStatus = Literal["pendente", "processando", "concluido", "erro"]
 
 
 class ItauConfigPayload(BaseModel):
@@ -66,27 +66,57 @@ class SimulationRequest(BaseModel):
     c6bank: Optional[C6BankSimulationPayload] = None
 
 
-class BankResultResponse(BaseModel):
-    bank: str
+class OfertaProcessamentoResponse(BaseModel):
+    id: str
+    processamento_simulacao_banco_id: str
+    nome_banco: str
+    quantidade_parcelas: Optional[int] = None
+    descricao_parcela: Optional[str] = None
+    taxa: Optional[float] = None
+    taxa_texto: Optional[str] = None
+    entrada_valor: Optional[float] = None
+    entrada_texto: Optional[str] = None
+    valor_financiado: Optional[float] = None
+    valor_financiado_texto: Optional[str] = None
+    ordem_exibicao: int
+    criado_em: datetime
+
+
+class BancoProcessamentoResponse(BaseModel):
+    id: str
+    processamento_simulacao_id: str
+    nome_banco: str
     status: BankStatus
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
-    result: Optional[List[Dict[str, Any]]] = None
-    error: Optional[str] = None
+    mensagem_erro: Optional[str] = None
+    dados_entrada: Optional[Any] = None
+    dados_retorno: Optional[Any] = None
+    iniciado_em: Optional[datetime] = None
+    finalizado_em: Optional[datetime] = None
+    criado_em: datetime
+    atualizado_em: datetime
+    ofertas: List[OfertaProcessamentoResponse] = Field(default_factory=list)
 
 
 class SimulationCreateResponse(BaseModel):
     id: str
     status: JobStatus
+    quantidade_bancos: int
+    bancos: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class SimulationStatusResponse(BaseModel):
     id: str
+    simulacao_id: Optional[str] = None
     status: JobStatus
-    created_at: datetime
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
-    banks: Dict[str, BankResultResponse] = Field(default_factory=dict)
+    dados_requisicao: Optional[Any] = None
+    quantidade_bancos: int
+    quantidade_bancos_concluidos: int
+    quantidade_bancos_com_erro: int
+    iniciado_em: Optional[datetime] = None
+    finalizado_em: Optional[datetime] = None
+    criado_em: datetime
+    atualizado_em: datetime
+    bancos: List[BancoProcessamentoResponse] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):
