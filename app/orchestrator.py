@@ -28,6 +28,7 @@ def utcnow_iso() -> str:
 class BankPlan:
     internal_name: str
     display_name: str
+    bank_code: str
     runner: BankRunner
 
 
@@ -52,12 +53,41 @@ class SimulationOrchestrator:
         )
 
     def _bank_plans(self, payload: SimulationRequest) -> List[BankPlan]:
+        requested_codes = {
+            str(code).strip()
+            for code in (payload.codigos_bancos or [])
+            if str(code).strip()
+        }
+        supported_codes = {"341", "336"}
+        unsupported_codes = sorted(requested_codes - supported_codes)
+        if unsupported_codes:
+            raise ValueError(
+                "Codigos de bancos nao suportados: "
+                + ", ".join(unsupported_codes)
+            )
+
         plans: List[BankPlan] = []
-        if payload.itau and payload.itau.enabled:
-            plans.append(BankPlan("itau", "Itaú", run_itau))
-        if payload.c6bank and payload.c6bank.enabled:
-            plans.append(BankPlan("c6bank", "C6 Bank", run_c6bank))
+        if payload.itau and payload.itau.enabled and self._is_selected("341", requested_codes):
+            plans.append(BankPlan("itau", "Itaú", "341", run_itau))
+        if payload.c6bank and payload.c6bank.enabled and self._is_selected("336", requested_codes):
+            plans.append(BankPlan("c6bank", "C6 Bank", "336", run_c6bank))
+
+        missing_payload_codes = sorted(
+            code
+            for code in requested_codes
+            if code not in {plan.bank_code for plan in plans}
+        )
+        if missing_payload_codes:
+            raise ValueError(
+                "Foram solicitados bancos sem payload configurado: "
+                + ", ".join(missing_payload_codes)
+            )
         return plans
+
+    def _is_selected(self, bank_code: str, requested_codes: set[str]) -> bool:
+        if not requested_codes:
+            return True
+        return bank_code in requested_codes
 
     def _run_job(self, created_data: Dict[str, object], payload: SimulationRequest, plans: List[BankPlan]) -> None:
         processamento_id = str(created_data["id"])

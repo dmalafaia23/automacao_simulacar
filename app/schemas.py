@@ -62,6 +62,7 @@ class C6BankSimulationPayload(BaseModel):
 
 
 class SimulationRequest(BaseModel):
+    codigos_bancos: Optional[List[str]] = None
     itau: Optional[ItauSimulationPayload] = None
     c6bank: Optional[C6BankSimulationPayload] = None
 

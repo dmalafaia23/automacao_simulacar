@@ -114,6 +114,13 @@ Regra:
 - informe pelo menos um banco
 - cada banco recebe seu proprio bloco de `config` e `client_data`
 - o campo `enabled` permite ligar ou desligar um banco no payload
+- o campo opcional `codigos_bancos` permite selecionar exatamente quais bancos devem ser simulados
+
+Codigos suportados hoje:
+- `341`: Itaú
+- `336`: C6 Bank
+
+Se `codigos_bancos` nao for enviado, a API tenta executar todos os bancos informados no payload com `enabled: true`.
 
 Exemplo:
 
@@ -121,6 +128,7 @@ Exemplo:
 curl -X POST http://127.0.0.1:8000/simulacoes \
   -H "Content-Type: application/json" \
   -d '{
+    "codigos_bancos": ["341", "336"],
     "itau": {
       "enabled": true,
       "config": {
@@ -167,6 +175,59 @@ Resposta:
 {
   "id": "9d5d5e4e-7ec8-4f24-a9c6-5c1ad2f9f1d0",
   "status": "pendente"
+}
+```
+
+Exemplo para simular apenas no Itaú:
+
+```json
+{
+  "codigos_bancos": ["341"],
+  "itau": {
+    "enabled": true,
+    "config": {
+      "base_url": "https://www.credlineitau.com.br/simulator",
+      "email": "pravoceveiculos@icloud.com",
+      "senha": "Veiculos$2025",
+      "headless": false,
+      "timeout_ms": 30000
+    },
+    "client_data": {
+      "cpf": "410.011.088-09",
+      "placa_veiculo": "TMJ6D14",
+      "valor_financiamento": "139.900,00",
+      "retorno_estrelas": "4"
+    }
+  }
+}
+```
+
+Exemplo para simular apenas no C6 Bank:
+
+```json
+{
+  "codigos_bancos": ["336"],
+  "c6bank": {
+    "enabled": true,
+    "config": {
+      "base_url": "https://c6auto.com.br/originacaolojista/login",
+      "email": "41001108809",
+      "senha": "Carro$2025",
+      "headless": false,
+      "timeout_ms": 30000
+    },
+    "client_data": {
+      "cpf": "410.011.088-09",
+      "celular": "(19) 99386-2056",
+      "data_nascimento": "24/08/1993",
+      "uf": "SP",
+      "placa_veiculo": "TMJ6D14",
+      "valor_financiamento": "R$ 139.900,00",
+      "valor_entrada": "0,00",
+      "possui_cnh": true,
+      "retorno_estrelas": "6"
+    }
+  }
 }
 ```
 
