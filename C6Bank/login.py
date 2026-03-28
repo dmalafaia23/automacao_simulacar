@@ -6,11 +6,27 @@ except ImportError:
     from config_loader import AppConfig
 
 
+class LoginFailedError(RuntimeError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
 def log_step(message: str) -> None:
     print(f"[STEP] {message}")
 
 
 def perform_login(page: Page, config: AppConfig) -> None:
+    mensagens_login_invalido = [
+        "usuario ou senha invalid",
+        "usuário ou senha inválid",
+        "usuario ou senha incorret",
+        "usuário ou senha incorret",
+        "invalid username or password",
+        "senha expirad",
+        "senha vencid",
+    ]
+
     log_step("Iniciando login")
     try:
         log_step("Aguardando botao iniciar login")
@@ -42,5 +58,15 @@ def perform_login(page: Page, config: AppConfig) -> None:
 
     log_step("Clicando em acessar")
     page.get_by_role("button", name="Acessar").click()
-    page.wait_for_timeout(8000)
+    page.wait_for_timeout(3000)
+    try:
+        page.get_by_role("button", name="Criar uma nova proposta").wait_for(
+            state="visible",
+            timeout=8000,
+        )
+    except PlaywrightTimeoutError:
+        texto_pagina = page.locator("body").inner_text().lower()
+        if any(mensagem in texto_pagina for mensagem in mensagens_login_invalido):
+            raise LoginFailedError("usuario e senha estão incorretos ou expirados")
+        raise
     log_step("Login enviado")

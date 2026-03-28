@@ -7,11 +7,11 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 try:
     from .config_loader import AppConfig
     from .client_data_loader import ClientData
-    from .login import perform_login
+    from .login import LoginFailedError, perform_login
 except ImportError:
     from config_loader import AppConfig
     from client_data_loader import ClientData
-    from login import perform_login
+    from login import LoginFailedError, perform_login
 
 
 class SiteLentoError(RuntimeError):
@@ -44,16 +44,25 @@ class Simulator:
             page.goto(self.config.base_url)
             page.wait_for_timeout(4500)
             log_step("Executando login")
-            perform_login(page, self.config)
-            log_step("Executando simulador PF")
-            resultados = self.simulador_pf(
-                page,
-                cpf=self.client_data.cpf,
-                timeout_ms=self.config.timeout_ms,
-            )
-            # Não fechar o navegador por enquanto, conforme solicitado.
-            log_step("Execução do simulador finalizada")
-            return resultados
+            try:
+                perform_login(page, self.config)
+                log_step("Executando simulador PF")
+                resultados = self.simulador_pf(
+                    page,
+                    cpf=self.client_data.cpf,
+                    timeout_ms=self.config.timeout_ms,
+                )
+                # Não fechar o navegador por enquanto, conforme solicitado.
+                log_step("Execução do simulador finalizada")
+                return resultados
+            except LoginFailedError as exc:
+                log_step("Falha de login detectada; finalizando automacao")
+                return [
+                    {
+                        "status": "login_invalido",
+                        "mensagem": exc.message,
+                    }
+                ]
 
     def simulador_pf(self, page, cpf: str, timeout_ms: int) -> List[Dict[str, str]]:
         log_step("Aguardando botão 'Criar uma nova proposta'")

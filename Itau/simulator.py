@@ -7,11 +7,11 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 try:
     from .config_loader import AppConfig
     from .client_data_loader import ClientData
-    from .login import perform_login
+    from .login import LoginFailedError, perform_login
 except ImportError:
     from config_loader import AppConfig
     from client_data_loader import ClientData
-    from login import perform_login
+    from login import LoginFailedError, perform_login
 
 
 class SiteLentoError(RuntimeError):
@@ -64,6 +64,14 @@ class Simulator:
                     # Não fechar o navegador por enquanto, conforme solicitado.
                     log_step("Execução do simulador finalizada")
                     return resultados
+                except LoginFailedError as exc:
+                    log_step("Falha de login detectada; finalizando automacao")
+                    return [
+                        {
+                            "status": "login_invalido",
+                            "mensagem": exc.message,
+                        }
+                    ]
                 except Exception as exc:
                     last_exc = exc
                     if is_driver_connection_error(exc) and attempt < max_driver_retries:
@@ -78,6 +86,17 @@ class Simulator:
         return []
 
     def simulador_pf(self, page, cpf: str, timeout_ms: int) -> List[Dict[str, str]]:
+        mensagem_sem_aprovacao = "Não temos condições aprováveis para este cliente."
+
+        def retorno_sem_aprovacao() -> List[Dict[str, str]]:
+            log_step("Cliente sem credito aprovado; finalizando automacao")
+            return [
+                {
+                    "status": "nao_aprovado_credito",
+                    "mensagem": mensagem_sem_aprovacao,
+                }
+            ]
+
         botao_novo_simulador = page.get_by_role("button", name="Novo Simulador PF")
         try:
             log_step("Aguardando botão 'Novo Simulador PF'")
@@ -101,13 +120,23 @@ class Simulator:
         campo_cpf.click()
         page.wait_for_timeout(500)
         campo_cpf.fill(cpf)
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(1500)
+        aviso_sem_aprovacao = page.get_by_text(mensagem_sem_aprovacao, exact=True)
+        if aviso_sem_aprovacao.is_visible():
+            return retorno_sem_aprovacao()
         log_step("Confirmando CPF")
         page.get_by_role("button", name="Continuar").click()
         page.wait_for_timeout(3500)
+        if aviso_sem_aprovacao.is_visible():
+            return retorno_sem_aprovacao()
 
         log_step("Selecionando aba Placa")
-        page.get_by_role("tab", name="Placa").click()
+        aba_placa = page.get_by_role("tab", name="Placa")
+        if not aba_placa.is_visible():
+            if aviso_sem_aprovacao.is_visible():
+                return retorno_sem_aprovacao()
+            raise SiteLentoError("Fluxo não avançou para a etapa da placa após a consulta do CPF.")
+        aba_placa.click()
         page.wait_for_timeout(1000)
         log_step("Preenchendo placa do veiculo")
         page.get_by_role("textbox", name="Placa").click()
@@ -141,9 +170,23 @@ class Simulator:
         page.wait_for_timeout(1000)
         try:
             log_step(f"Selecionando retorno: {self.client_data.retorno_estrelas}")
-            page.locator("#ids-option-354").get_by_text(self.client_data.retorno_estrelas, exact=True).click()
+            opcao_retorno = page.get_by_role(
+                "option",
+                name=self.client_data.retorno_estrelas,
+                exact=True,
+            )
+            opcao_retorno.wait_for(state="visible", timeout=timeout_ms)
+            opcao_retorno.click()
         except Exception as exc:
-            print(f"[WARN] Falha ao selecionar retorno {self.client_data.retorno_estrelas}: {exc}")
+            opcoes_disponiveis = [
+                texto.strip()
+                for texto in page.locator("[role='option']").all_inner_texts()
+                if texto.strip()
+            ]
+            print(
+                f"[WARN] Falha ao selecionar retorno {self.client_data.retorno_estrelas}: {exc}. "
+                f"Opcoes encontradas: {opcoes_disponiveis}"
+            )
             return []
         page.wait_for_timeout(1000)
         log_step("Aplicando retorno selecionado")
