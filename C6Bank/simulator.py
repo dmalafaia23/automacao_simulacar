@@ -1,5 +1,6 @@
 ﻿from dataclasses import dataclass
 from typing import Dict, List
+import re
 from playwright.sync_api import sync_playwright
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -20,6 +21,26 @@ class SiteLentoError(RuntimeError):
 
 def log_step(message: str) -> None:
     print(f"[STEP] {message}")
+
+
+def normalizar_texto_monetario(texto: str) -> str:
+    texto_limpo = texto.replace("\xa0", " ")
+    texto_limpo = re.sub(r"\s+", " ", texto_limpo).strip()
+    return texto_limpo
+
+
+def extrair_valor_monetario(texto: str) -> str:
+    texto_limpo = normalizar_texto_monetario(texto)
+    match = re.search(r"R\$\s*[\d\.\,]+", texto_limpo)
+    return match.group(0) if match else texto_limpo
+
+
+def aguardar_loading_sumir(page, timeout_ms: int) -> None:
+    overlay = page.locator(".loading-indicator__overlay")
+    try:
+        overlay.wait_for(state="hidden", timeout=timeout_ms)
+    except PlaywrightTimeoutError:
+        pass
 
 
 @dataclass
@@ -110,7 +131,7 @@ class Simulator:
         page.locator("#mat-select-value-1").click()
         page.wait_for_timeout(500)
         log_step(f"Selecionando UF: {self.client_data.uf}")
-        page.locator("#mat-option-25").get_by_text(self.client_data.uf).click()
+        page.get_by_role("option", name=self.client_data.uf, exact=True).click()
         page.wait_for_timeout(500)
 
         log_step("Acessando campo Placa")
@@ -151,14 +172,17 @@ class Simulator:
         log_step("Clicando em Simular")
         page.get_by_role("button", name="Simular").click()
         page.wait_for_timeout(30000)
+        aguardar_loading_sumir(page, timeout_ms)
 
         aviso_entrada = page.get_by_role("heading", name="Valor de entrada abaixo do mí")
         if aviso_entrada.is_visible():
             log_step("Fechando aviso de entrada baixa")
             page.get_by_role("button", name="ENTENDI").click()
             page.wait_for_timeout(1000)
+            aguardar_loading_sumir(page, timeout_ms)
 
         log_step("Abrindo configuracoes do lojista")
+        aguardar_loading_sumir(page, timeout_ms)
         page.get_by_text("Configurações do lojista").click()
         page.wait_for_timeout(2500)
         log_step("Configurando taxa do lojista")
@@ -171,6 +195,7 @@ class Simulator:
         page.wait_for_timeout(1000)
         page.get_by_role("button", name="Confirmar").click()
         page.wait_for_timeout(5000)
+        aguardar_loading_sumir(page, timeout_ms)
 
         log_step("Voltando para o topo da pagina")
         page.locator("body").press("Home")
@@ -178,6 +203,8 @@ class Simulator:
 
         resultados: List[Dict[str, str]] = []
         parcelas = [60, 48, 36, 24, 12]
+        entrada_campo = page.get_by_role("textbox", name="Entrada")
+        financiado_locator = page.get_by_text("FinanciamentoR$")
         for parcela in parcelas:
             nome_botao = f"{parcela}x de R$"
             log_step(f"Selecionando parcela {nome_botao}")
@@ -187,18 +214,16 @@ class Simulator:
                     log_step(f"Parcela {nome_botao} nao encontrada, pulando")
                     page.wait_for_timeout(500)
                     continue
+                botao_parcela.scroll_into_view_if_needed()
                 botao_parcela.click()
-                page.wait_for_timeout(5000)
-                parcela_texto = botao_parcela.inner_text().strip()
+                aguardar_loading_sumir(page, timeout_ms)
+                page.wait_for_timeout(800)
+                parcela_texto = normalizar_texto_monetario(botao_parcela.inner_text())
 
-                entrada_campo = page.get_by_role("textbox", name="Entrada")
-                entrada_campo.click()
-                page.wait_for_timeout(500)
-                entrada_texto = entrada_campo.input_value().strip()
-                page.wait_for_timeout(3000)
+                entrada_texto = normalizar_texto_monetario(entrada_campo.input_value())
 
-                financiado_texto = page.get_by_text("FinanciamentoR$").inner_text().strip()
-                page.wait_for_timeout(500)
+                financiado_bruto = financiado_locator.inner_text().strip()
+                financiado_texto = extrair_valor_monetario(financiado_bruto)
 
                 linha = (
                     f"[PARCELA] {parcela_texto} | "
