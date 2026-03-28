@@ -43,6 +43,29 @@ def aguardar_loading_sumir(page, timeout_ms: int) -> None:
         pass
 
 
+def obter_retorno_nao_aprovado(page) -> List[Dict[str, str]] | None:
+    titulo_reprovacao = page.get_by_text("Proposta não atende requisitos", exact=True)
+    if not titulo_reprovacao.is_visible():
+        return None
+
+    motivo = ""
+    motivo_locator = page.get_by_text("Fora da Politica", exact=True)
+    if motivo_locator.is_visible():
+        motivo = motivo_locator.inner_text().strip()
+
+    mensagem = "Cliente não aprovado para crédito."
+    if motivo:
+        mensagem = f"{mensagem} Motivo: {motivo}."
+
+    log_step("Cliente não aprovado no C6; finalizando automacao")
+    return [
+        {
+            "status": "nao_aprovado_credito",
+            "mensagem": mensagem,
+        }
+    ]
+
+
 @dataclass
 class Simulator:
     config: AppConfig
@@ -173,6 +196,9 @@ class Simulator:
         page.get_by_role("button", name="Simular").click()
         page.wait_for_timeout(30000)
         aguardar_loading_sumir(page, timeout_ms)
+        retorno_nao_aprovado = obter_retorno_nao_aprovado(page)
+        if retorno_nao_aprovado is not None:
+            return retorno_nao_aprovado
 
         aviso_entrada = page.get_by_role("heading", name="Valor de entrada abaixo do mí")
         if aviso_entrada.is_visible():
@@ -180,6 +206,9 @@ class Simulator:
             page.get_by_role("button", name="ENTENDI").click()
             page.wait_for_timeout(1000)
             aguardar_loading_sumir(page, timeout_ms)
+            retorno_nao_aprovado = obter_retorno_nao_aprovado(page)
+            if retorno_nao_aprovado is not None:
+                return retorno_nao_aprovado
 
         log_step("Abrindo configuracoes do lojista")
         aguardar_loading_sumir(page, timeout_ms)
