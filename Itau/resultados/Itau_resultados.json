@@ -1,4 +1,9 @@
 {
   "banco": "Itau",
-  "simulacoes": []
+  "simulacoes": [
+    {
+      "status": "login_invalido",
+      "mensagem": "usuario e senha estão incorretos ou expirados"
+    }
+  ]
 }

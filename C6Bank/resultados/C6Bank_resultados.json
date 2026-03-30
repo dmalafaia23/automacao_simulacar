@@ -1,0 +1,9 @@
+{
+  "banco": "C6Bank",
+  "simulacoes": [
+    {
+      "status": "nao_aprovado_credito",
+      "mensagem": "Cliente não aprovado para crédito. Motivo: Fora da Politica."
+    }
+  ]
+}
