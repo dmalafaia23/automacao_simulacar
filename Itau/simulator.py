@@ -244,3 +244,4 @@ class Simulator:
             )
         page.wait_for_timeout(10000)
         return resultados
+#Carrijo perde pra mim no Tennis.
