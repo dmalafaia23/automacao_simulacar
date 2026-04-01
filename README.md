@@ -100,7 +100,7 @@ Resposta:
 ```json
 {
   "status": "ok",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "current_time": "2026-03-25T20:01:36.377742-03:00",
   "timezone": "-03"
 }
