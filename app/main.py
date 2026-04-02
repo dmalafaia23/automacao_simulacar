@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import require_basic_auth
@@ -42,14 +43,30 @@ app.add_middleware(
         "http://127.0.0.1:8080",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://id-preview--967ca2a6-df61-421f-9625-e640b2f21e34.lovable.app",
         "https://simulacar.lovable.app",
         "https://hvzsydmtqjasgnveyrxr.supabase.co",
     ],
+    allow_origin_regex=r"^https://([a-z0-9-]+\.)?lovable\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def allow_private_network_requests(request: Request, call_next) -> Response:
+    if (
+        request.method == "OPTIONS"
+        and request.headers.get("access-control-request-private-network") == "true"
+    ):
+        response = Response(status_code=200)
+    else:
+        response = await call_next(request)
+
+    if request.headers.get("access-control-request-private-network") == "true":
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+
+    return response
 
 
 @app.get("/health", response_model=HealthResponse)
