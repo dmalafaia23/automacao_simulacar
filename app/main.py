@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .auth import require_basic_auth
 from .external_api import (
     ExternalAPIConfigError,
     ExternalAPIRequestError,
@@ -28,7 +29,11 @@ from .schemas import (
 API_VERSION = "1.3.1"
 orchestrator = SimulationOrchestrator()
 
-app = FastAPI(title="Automacao Simulacar API", version=API_VERSION)
+app = FastAPI(
+    title="Automacao Simulacar API",
+    version=API_VERSION,
+    dependencies=[Depends(require_basic_auth)],
+)
 
 app.add_middleware(
     CORSMiddleware,

@@ -14,7 +14,7 @@ O fluxo e baseado em processamento por `job_id`:
 
 ## Versao
 
-Versao atual da API: `1.3.0`
+Versao atual da API: `1.3.1`
 
 ## Requisitos
 
@@ -54,6 +54,23 @@ Depois preencha a chave no arquivo `.env`:
 ```env
 EXTERNAL_API_URL="https://hvzsydmtqjasgnveyrxr.supabase.co/functions/v1/api-externa"
 EXTERNAL_API_KEY="SUA_CHAVE_AQUI"
+API_BASIC_USERNAME="admin"
+API_BASIC_PASSWORD="troque-essa-senha"
+```
+
+## Autenticacao
+
+Todos os endpoints da API exigem autenticacao HTTP Basic.
+
+Credenciais configuradas via `.env`:
+
+- `API_BASIC_USERNAME`
+- `API_BASIC_PASSWORD`
+
+Exemplo de uso com `curl`:
+
+```bash
+curl -u admin:troque-essa-senha http://127.0.0.1:8000/health
 ```
 
 ## Executando a API
@@ -92,7 +109,7 @@ Verifica se a API esta ativa e retorna versao e horario atual do servidor.
 Exemplo:
 
 ```bash
-curl http://127.0.0.1:8000/health
+curl -u admin:troque-essa-senha http://127.0.0.1:8000/health
 ```
 
 Resposta:
@@ -126,6 +143,7 @@ Exemplo:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/simulacoes \
+  -u admin:troque-essa-senha \
   -H "Content-Type: application/json" \
   -d '{
     "codigos_bancos": ["341", "336"],
@@ -238,7 +256,7 @@ Consulta o status de um processamento e retorna os resultados disponiveis.
 Exemplo:
 
 ```bash
-curl http://127.0.0.1:8000/simulacoes/9d5d5e4e-7ec8-4f24-a9c6-5c1ad2f9f1d0
+curl -u admin:troque-essa-senha http://127.0.0.1:8000/simulacoes/9d5d5e4e-7ec8-4f24-a9c6-5c1ad2f9f1d0
 ```
 
 Resposta enquanto processa:
@@ -334,6 +352,5 @@ Status por banco:
 ## Proximos passos sugeridos
 
 - persistir jobs e resultados no Supabase
-- adicionar autenticacao da API
 - adicionar endpoint de prontidao, como `GET /ready`
 - adicionar logs estruturados por `job_id`
