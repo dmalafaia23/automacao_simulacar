@@ -61,10 +61,64 @@ class C6BankSimulationPayload(BaseModel):
     client_data: C6BankClientPayload
 
 
+class PanConfigPayload(BaseModel):
+    base_url: str
+    email: str
+    senha: str
+    headless: bool = True
+    timeout_ms: int = 30000
+
+
+class PanClientPayload(BaseModel):
+    cpf: str
+    celular: str = ""
+    data_nascimento: str = ""
+    uf: str = ""
+    placa_veiculo: str
+    valor_financiamento: str
+    valor_entrada: str = ""
+    possui_cnh: bool = True
+    retorno_estrelas: str = ""
+
+
+class PanSimulationPayload(BaseModel):
+    enabled: bool = True
+    config: PanConfigPayload
+    client_data: PanClientPayload
+
+
+class SantanderConfigPayload(BaseModel):
+    base_url: str
+    email: str
+    senha: str
+    headless: bool = True
+    timeout_ms: int = 30000
+
+
+class SantanderClientPayload(BaseModel):
+    cpf: str
+    celular: str = ""
+    data_nascimento: str = ""
+    uf: str = ""
+    placa_veiculo: str
+    valor_financiamento: str
+    valor_entrada: str = ""
+    possui_cnh: bool = True
+    retorno_estrelas: str = ""
+
+
+class SantanderSimulationPayload(BaseModel):
+    enabled: bool = True
+    config: SantanderConfigPayload
+    client_data: SantanderClientPayload
+
+
 class SimulationRequest(BaseModel):
     codigos_bancos: Optional[List[str]] = None
     itau: Optional[ItauSimulationPayload] = None
     c6bank: Optional[C6BankSimulationPayload] = None
+    pan: Optional[PanSimulationPayload] = None
+    santander: Optional[SantanderSimulationPayload] = None
 
 
 class OfertaProcessamentoResponse(BaseModel):
@@ -73,6 +127,8 @@ class OfertaProcessamentoResponse(BaseModel):
     nome_banco: str
     quantidade_parcelas: Optional[int] = None
     descricao_parcela: Optional[str] = None
+    valor_parcela: Optional[float] = None
+    valor_parcela_texto: Optional[str] = None
     taxa: Optional[float] = None
     taxa_texto: Optional[str] = None
     entrada_valor: Optional[float] = None

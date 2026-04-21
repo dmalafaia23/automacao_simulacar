@@ -1,0 +1,105 @@
+{
+  "banco": "Santander",
+  "simulacoes": [
+    {
+      "parcela": "60x de R$ 4.297,50",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Debito em conta Santander",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "48x de R$ 4.739,88",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Debito em conta Santander",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "36x de R$ 5.833,32",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Debito em conta Santander",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "24x de R$ 8.054,37",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Debito em conta Santander",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "12x de R$ 14.699,27",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Debito em conta Santander",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "60x de R$ 4.392,63",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Boleto",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "48x de R$ 4.818,60",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Boleto",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "36x de R$ 5.908,67",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Boleto",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "24x de R$ 8.126,88",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Boleto",
+      "status": "aprovado"
+    },
+    {
+      "parcela": "12x de R$ 14.769,35",
+      "taxa": "",
+      "entrada": "R$ 0,00",
+      "financiado": "R$ 139.900,00",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "132342756",
+      "forma_pagamento": "Boleto",
+      "status": "aprovado"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "base_url": "https://veiculos.bancopan.com.br/login",
+  "email": "41001108809",
+  "senha": "Pra$2026",
+  "headless": false,
+  "timeout_ms": 30000
+}

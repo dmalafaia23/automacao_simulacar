@@ -1,0 +1,18 @@
+{
+  "banco": "PAN",
+  "simulacoes": [
+    {
+      "status": "senha_expirando",
+      "mensagem": "Sua senha expira em 2 dia(s)."
+    },
+    {
+      "parcela": "48x de R$ 2.015,70",
+      "taxa": "",
+      "entrada": "R$ 87.457,60",
+      "financiado": "R$ 52.442,40",
+      "valor_venda": "R$ 139.900,00",
+      "proposta": "148786822",
+      "status": "aprovado"
+    }
+  ]
+}
