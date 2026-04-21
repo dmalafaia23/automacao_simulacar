@@ -5,6 +5,8 @@ API para orquestrar simulacoes de financiamento em multiplos bancos de forma ass
 Hoje a API suporta:
 - Itau
 - C6 Bank
+- PAN
+- Santander
 
 O fluxo e baseado em processamento por `job_id`:
 - o cliente envia uma requisicao para iniciar a simulacao
@@ -136,6 +138,8 @@ Regra:
 Codigos suportados hoje:
 - `341`: Itaú
 - `336`: C6 Bank
+- `623`: PAN
+- `033`: Santander
 
 Se `codigos_bancos` nao for enviado, a API tenta executar todos os bancos informados no payload com `enabled: true`.
 
@@ -244,6 +248,64 @@ Exemplo para simular apenas no C6 Bank:
       "valor_entrada": "0,00",
       "possui_cnh": true,
       "retorno_estrelas": "6"
+    }
+  }
+}
+```
+
+Exemplo para simular apenas no PAN:
+
+```json
+{
+  "codigos_bancos": ["623"],
+  "pan": {
+    "enabled": true,
+    "config": {
+      "base_url": "",
+      "email": "",
+      "senha": "",
+      "headless": false,
+      "timeout_ms": 30000
+    },
+    "client_data": {
+      "cpf": "410.011.088-09",
+      "celular": "(19) 99386-2056",
+      "data_nascimento": "24/08/1993",
+      "uf": "SP",
+      "placa_veiculo": "TMJ6D14",
+      "valor_financiamento": "R$ 139.900,00",
+      "valor_entrada": "0,00",
+      "possui_cnh": true,
+      "retorno_estrelas": ""
+    }
+  }
+}
+```
+
+Exemplo para simular apenas no Santander:
+
+```json
+{
+  "codigos_bancos": ["033"],
+  "santander": {
+    "enabled": true,
+    "config": {
+      "base_url": "",
+      "email": "",
+      "senha": "",
+      "headless": false,
+      "timeout_ms": 30000
+    },
+    "client_data": {
+      "cpf": "410.011.088-09",
+      "celular": "(19) 99386-2056",
+      "data_nascimento": "24/08/1993",
+      "uf": "SP",
+      "placa_veiculo": "TMJ6D14",
+      "valor_financiamento": "R$ 139.900,00",
+      "valor_entrada": "0,00",
+      "possui_cnh": true,
+      "retorno_estrelas": ""
     }
   }
 }

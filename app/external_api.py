@@ -182,25 +182,44 @@ def parse_quantidade_parcelas(descricao_parcela: Optional[str]) -> Optional[int]
     return int(match.group(1))
 
 
+def parse_valor_parcela_texto(descricao_parcela: Optional[str]) -> Optional[str]:
+    if descricao_parcela is None:
+        return None
+    match = re.search(r"R\$\s*[\d\.\,]+", descricao_parcela)
+    if not match:
+        return None
+    return match.group(0).strip()
+
+
 def normalize_offers(bank_name: str, simulation_rows: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
     normalized: list[Dict[str, Any]] = []
-    for index, row in enumerate(simulation_rows):
+    for row in simulation_rows:
         descricao_parcela = str(row.get("parcela", "")).strip() or None
+        quantidade_parcelas_texto = str(row.get("quantidade_parcelas", "")).strip() or None
+        valor_parcela_texto = str(row.get("valor_parcela", "")).strip() or parse_valor_parcela_texto(descricao_parcela)
         taxa_texto = str(row.get("taxa", "")).strip() or None
         entrada_texto = str(row.get("entrada", "")).strip() or None
         valor_financiado_texto = str(row.get("financiado", "")).strip() or None
+        if not descricao_parcela and not entrada_texto and not valor_financiado_texto:
+            continue
         normalized.append(
             {
                 "nome_banco": bank_name,
-                "quantidade_parcelas": parse_quantidade_parcelas(descricao_parcela),
+                "quantidade_parcelas": (
+                    int(quantidade_parcelas_texto)
+                    if quantidade_parcelas_texto and quantidade_parcelas_texto.isdigit()
+                    else parse_quantidade_parcelas(descricao_parcela)
+                ),
                 "descricao_parcela": descricao_parcela,
+                "valor_parcela": parse_numero_decimal(valor_parcela_texto),
+                "valor_parcela_texto": valor_parcela_texto,
                 "taxa": parse_numero_decimal(taxa_texto),
                 "taxa_texto": taxa_texto,
                 "entrada_valor": parse_numero_decimal(entrada_texto),
                 "entrada_texto": entrada_texto,
                 "valor_financiado": parse_numero_decimal(valor_financiado_texto),
                 "valor_financiado_texto": valor_financiado_texto,
-                "ordem_exibicao": index,
+                "ordem_exibicao": len(normalized),
             }
         )
     return normalized

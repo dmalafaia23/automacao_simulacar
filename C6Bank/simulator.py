@@ -35,6 +35,17 @@ def extrair_valor_monetario(texto: str) -> str:
     return match.group(0) if match else texto_limpo
 
 
+def separar_parcela(parcela_texto: str) -> Dict[str, str]:
+    texto_limpo = normalizar_texto_monetario(parcela_texto)
+    match = re.search(r"(\d+)\s*x\s*(?:de\s*)?(R\$\s*[\d\.\,]+)", texto_limpo, flags=re.IGNORECASE)
+    if not match:
+        return {"quantidade_parcelas": "", "valor_parcela": ""}
+    return {
+        "quantidade_parcelas": match.group(1),
+        "valor_parcela": normalizar_texto_monetario(match.group(2)),
+    }
+
+
 def aguardar_loading_sumir(page, timeout_ms: int) -> None:
     overlay = page.locator(".loading-indicator__overlay")
     try:
@@ -260,6 +271,8 @@ class Simulator:
                 )
                 resultados.append(
                     {
+                        "quantidade_parcelas": str(parcela),
+                        "valor_parcela": separar_parcela(parcela_texto)["valor_parcela"],
                         "parcela": parcela_texto,
                         "taxa": "",
                         "entrada": entrada_texto,

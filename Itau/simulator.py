@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 from playwright.sync_api import sync_playwright
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+import re
 
 try:
     from .config_loader import AppConfig
@@ -30,6 +31,21 @@ def is_driver_connection_error(exc: Exception) -> bool:
         or "Browser closed" in message
         or "has been closed" in message
     )
+
+
+def normalizar_texto(texto: str) -> str:
+    return re.sub(r"\s+", " ", texto.replace("\xa0", " ")).strip()
+
+
+def separar_parcela(parcela_texto: str) -> Dict[str, str]:
+    texto_limpo = normalizar_texto(parcela_texto)
+    match = re.search(r"(\d+)\s*x\s*(?:de\s*)?(R\$\s*[\d\.\,]+)", texto_limpo, flags=re.IGNORECASE)
+    if not match:
+        return {"quantidade_parcelas": "", "valor_parcela": ""}
+    return {
+        "quantidade_parcelas": match.group(1),
+        "valor_parcela": normalizar_texto(match.group(2)),
+    }
 
 
 @dataclass
@@ -217,12 +233,15 @@ class Simulator:
             page.wait_for_timeout(500)
             financiado_texto = valor_financiado.inner_text().strip()
             page.wait_for_timeout(500)
+            detalhes_parcela = separar_parcela(parcela_texto)
             linha = (
                 f"[PARCELA] {parcela_texto} | Taxa: {taxa_texto} | "
                 f"Entrada: {entrada_texto} | Financiado: {financiado_texto}"
             )
             resultados.append(
                 {
+                    "quantidade_parcelas": detalhes_parcela["quantidade_parcelas"],
+                    "valor_parcela": detalhes_parcela["valor_parcela"],
                     "parcela": parcela_texto,
                     "taxa": taxa_texto,
                     "entrada": entrada_texto,

@@ -15,6 +15,9 @@ from .external_api import (
     get_external_api_config,
     list_banks,
     list_vehicles,
+    parse_numero_decimal,
+    parse_quantidade_parcelas,
+    parse_valor_parcela_texto,
 )
 from .orchestrator import SimulationOrchestrator
 from .schemas import (
@@ -51,6 +54,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def enrich_offer_installment_fields(data: object) -> object:
+    if not isinstance(data, dict):
+        return data
+
+    bancos = data.get("bancos")
+    if not isinstance(bancos, list):
+        return data
+
+    for banco in bancos:
+        if not isinstance(banco, dict):
+            continue
+        ofertas = banco.get("ofertas")
+        if not isinstance(ofertas, list):
+            continue
+        for oferta in ofertas:
+            if not isinstance(oferta, dict):
+                continue
+            descricao = oferta.get("descricao_parcela")
+            if oferta.get("quantidade_parcelas") is None:
+                oferta["quantidade_parcelas"] = parse_quantidade_parcelas(descricao)
+            if not oferta.get("valor_parcela_texto"):
+                oferta["valor_parcela_texto"] = parse_valor_parcela_texto(descricao)
+            if oferta.get("valor_parcela") is None:
+                oferta["valor_parcela"] = parse_numero_decimal(oferta.get("valor_parcela_texto"))
+    return data
 
 
 @app.middleware("http")
@@ -150,7 +180,12 @@ def get_vehicle_from_external_api(placa: str) -> ExternalAPIVehicleResponse:
 
 @app.post("/simulacoes", response_model=SimulationCreateResponse, status_code=202)
 def create_simulation(payload: SimulationRequest) -> SimulationCreateResponse:
-    if payload.itau is None and payload.c6bank is None:
+    if (
+        payload.itau is None
+        and payload.c6bank is None
+        and payload.pan is None
+        and payload.santander is None
+    ):
         raise HTTPException(status_code=400, detail="Informe ao menos um banco para simular.")
 
     try:
@@ -175,4 +210,5 @@ def get_simulation(job_id: str) -> SimulationStatusResponse:
         ) from exc
 
     data = response["data"]
+    data = enrich_offer_installment_fields(data)
     return SimulationStatusResponse(**data)

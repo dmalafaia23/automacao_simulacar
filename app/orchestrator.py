@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from threading import Thread
 from typing import Callable, Dict, List, Tuple
 
-from .banks import run_c6bank, run_itau
+from .banks import run_c6bank, run_itau, run_pan, run_santander
 from .external_api import (
     create_processing,
     insert_processing_offers,
@@ -58,7 +58,7 @@ class SimulationOrchestrator:
             for code in (payload.codigos_bancos or [])
             if str(code).strip()
         }
-        supported_codes = {"341", "336"}
+        supported_codes = {"341", "336", "623", "033"}
         unsupported_codes = sorted(requested_codes - supported_codes)
         if unsupported_codes:
             raise ValueError(
@@ -71,6 +71,10 @@ class SimulationOrchestrator:
             plans.append(BankPlan("itau", "Itaú", "341", run_itau))
         if payload.c6bank and payload.c6bank.enabled and self._is_selected("336", requested_codes):
             plans.append(BankPlan("c6bank", "C6 Bank", "336", run_c6bank))
+        if payload.pan and payload.pan.enabled and self._is_selected("623", requested_codes):
+            plans.append(BankPlan("pan", "PAN", "623", run_pan))
+        if payload.santander and payload.santander.enabled and self._is_selected("033", requested_codes):
+            plans.append(BankPlan("santander", "Santander", "033", run_santander))
 
         missing_payload_codes = sorted(
             code
@@ -173,4 +177,8 @@ class SimulationOrchestrator:
             return payload.itau.model_dump(mode="json")
         if internal_name == "c6bank" and payload.c6bank:
             return payload.c6bank.model_dump(mode="json")
+        if internal_name == "pan" and payload.pan:
+            return payload.pan.model_dump(mode="json")
+        if internal_name == "santander" and payload.santander:
+            return payload.santander.model_dump(mode="json")
         return {}
